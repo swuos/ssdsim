@@ -419,6 +419,7 @@ unsigned int get_ppn_for_pre_process(struct ssd_info *ssd,unsigned int lsn)
 struct ssd_info *get_ppn(struct ssd_info *ssd,unsigned int channel,unsigned int chip,unsigned int die,unsigned int plane,struct sub_request *sub)
 {
 	int old_ppn=-1;
+	int temp_flag = 0;
 	unsigned int ppn,lpn,full_page;
 	unsigned int active_block;
 	unsigned int block;
@@ -427,6 +428,7 @@ struct ssd_info *get_ppn(struct ssd_info *ssd,unsigned int channel,unsigned int 
 	struct local *location;
 	struct direct_erase *direct_erase_node,*new_direct_erase;
 	struct gc_operation *gc_node;
+	struct active_block_record *temp = NULL;
 
 	unsigned int i=0,j=0,k=0,l=0,m=0,n=0;
 
@@ -441,12 +443,22 @@ struct ssd_info *get_ppn(struct ssd_info *ssd,unsigned int channel,unsigned int 
 	*利用函数find_active_block在channel，chip，die，plane找到活跃block
 	*并且修改这个channel，chip，die，plane，active_block下的last_write_page和free_page_num
 	**************************************************************************************/
-	if(find_active_block(ssd,channel,chip,die,plane)==FAILURE)                      
-	{
-		printf("ERROR :there is no free page in channel:%d, chip:%d, die:%d, plane:%d\n",channel,chip,die,plane);	
-		return ssd;
+	temp = ssd->entry;
+	while(temp){
+		if(temp->map_flag == sub->map_flag){
+			active_block = temp->active_block;
+			temp_flag = 1;
+		}
+		temp = temp->next;
 	}
-
+	if(temp_flag == 0){
+		if(find_adaptive_block(ssd,channel,chip,die,plane)==FAILURE)                      
+		{
+			printf("ERROR :there is no free page in channel:%d, chip:%d, die:%d, plane:%d\n",channel,chip,die,plane);	
+			return ssd;
+		}
+	}
+	
 	active_block=ssd->channel_head[channel].chip_head[chip].die_head[die].plane_head[plane].active_block;
 	ssd->channel_head[channel].chip_head[chip].die_head[die].plane_head[plane].blk_head[active_block].last_write_page++;	
 	ssd->channel_head[channel].chip_head[chip].die_head[die].plane_head[plane].blk_head[active_block].free_page_num--;
@@ -610,7 +622,10 @@ struct ssd_info *get_ppn(struct ssd_info *ssd,unsigned int channel,unsigned int 
 
 Status erase_operation(struct ssd_info * ssd,unsigned int channel ,unsigned int chip ,unsigned int die ,unsigned int plane ,unsigned int block)
 {
+	struct block_erase_count *erase_follow = NULL;
 	unsigned int i=0;
+	//unsigned int idx = 0;
+
 	ssd->channel_head[channel].chip_head[chip].die_head[die].plane_head[plane].blk_head[block].free_page_num=ssd->parameter->page_block;
 	ssd->channel_head[channel].chip_head[chip].die_head[die].plane_head[plane].blk_head[block].invalid_page_num=0;
 	ssd->channel_head[channel].chip_head[chip].die_head[die].plane_head[plane].blk_head[block].last_write_page=-1;
@@ -626,6 +641,37 @@ Status erase_operation(struct ssd_info * ssd,unsigned int channel ,unsigned int 
 	ssd->channel_head[channel].chip_head[chip].erase_count++;
 	ssd->channel_head[channel].chip_head[chip].die_head[die].plane_head[plane].free_page+=ssd->parameter->page_block;
 
+	ssd->erase_avg = ssd->erase_count/(ssd->parameter->channel_number*ssd->parameter->chip_num*ssd->parameter->die_chip*ssd->parameter->plane_die*ssd->parameter->block_plane);
+
+    erase_follow = (struct block_erase_count *)malloc(sizeof(struct block_erase_count));
+	erase_follow = ssd->block_head;
+	while(erase_follow)
+	{
+		if(erase_follow->channel == channel && erase_follow->chip == chip && erase_follow->die == die && erase_follow->plane == plane && erase_follow->block == block)
+		{
+			erase_follow->erase_count = erase_follow->erase_count + 1;
+			//printf("%d, %d, %d, %d, %d : %d\n", channel, chip, die, plane, block, erase_follow->erase_count);
+			//printf("%d, %d, %d, %d, %d : %d\n", erase_follow->channel, erase_follow->chip, erase_follow->die, erase_follow->plane, erase_follow->block, erase_follow->erase_count);
+			//system("pause");
+			break;
+		}
+		erase_follow = erase_follow->next;
+
+		//idx++;
+		//printf("%d\n", idx);
+	}
+	
+	/*
+	erase_follow = ssd->block_head;
+	while(erase_follow)
+	{
+		printf("%d\n", erase_follow->erase_count);
+		erase_follow = erase_follow->next;
+	}
+	*/
+
+	//printf("channel%d的chip%d的die%d的plane%d的block%d的擦出次数是: %d", channel, chip, die, plane, block, ssd->channel_head[channel].chip_head[chip].die_head[die].plane_head[plane].blk_head[block].erase_count);
+    //system("pause");
 	return SUCCESS;
 
 }

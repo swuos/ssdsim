@@ -200,6 +200,7 @@ struct ssd_info{
 	FILE * tracefile;
 	FILE * statisticfile;
 	FILE * statisticfile2;
+	FILE * array_fp;
 
     struct parameter_value *parameter;   //SSD参数因子
 	struct dram_info *dram;
@@ -209,8 +210,58 @@ struct ssd_info{
 	struct sub_request *subs_w_tail;
 	struct event_node *event;            //事件队列，每产生一个新的事件，按照时间顺序加到这个队列，在simulate函数最后，根据这个队列队首的时间，确定时间
 	struct channel_info *channel_head;   //指向channel结构体数组的首地址
+    
+    // unsigned double erase_avg;              //新增的记录所有块擦出次数的均值
+	// unsigned double free_page_avg; //新增的记录所有页擦出次数的均值
+	double erase_avg;              //新增的记录所有块擦出次数的均值
+	double free_page_avg; //新增的记录所有页擦出次数的均值
+    unsigned long free_page_num;
+	struct block_erase_count *block_head;//新增的指向擦除链表
+	struct frequence_set *frequence_head;//新增的指向频繁集合
+	//int frequence_set[10];
+	struct request *standby_front, *standby_rear;//新增两个队列
+	struct request *doing_front, *doing_rear;
+	struct request *insert_list_head;//暂存1024个请求
+	unsigned long int get_requests_count;
+	// struct frequence_set *hot_array_temp_front;//暂存完整的频繁组合和部分的组合
+	// struct frequence_set *hot_array_temp_fear;
+	struct request *temp_req;
+	struct active_block_record *entry;
+	
+};
+//new struct to record active_block, no free!!!!!!!!
+struct active_block_record{
+	int map_flag;
+	unsigned int active_block;
+	struct active_block *next;
 };
 
+
+//新增擦除链表
+struct block_erase_count{
+    unsigned int channel;
+	unsigned int chip;
+	unsigned int die;
+	unsigned int plane;
+	unsigned int block;
+    unsigned int erase_count;
+	struct block_erase_count *next;
+};
+
+//频繁集合
+/*
+struct frequence_set{
+	unsigned int frequence_array[10];
+	int array_count;
+	struct frequence_set *next;
+};
+
+typedef struct frequence_set{
+	unsigned int frequence_array[10];
+	//int array_count;
+	struct frequence_set *next;
+}frequence, *frequence_pset;
+*/
 
 struct channel_info{
 	int chip;                            //表示在该总线上有多少颗粒
@@ -356,6 +407,7 @@ struct request{
 	unsigned int complete_lsn_count;   //record the count of lsn served by buffer
 
 	int distri_flag;		           // indicate whether this request has been distributed already
+	int map_flag;                      //记录哪几个请求是一个组合
 
 	__int64 begin_time;
 	__int64 response_time;
@@ -363,6 +415,9 @@ struct request{
 
 	struct sub_request *subs;          //链接到属于该请求的所有子请求
 	struct request *next_node;         //指向下一个请求结构体
+
+	// belong pattern
+	// unsigned int pattern;
 };
 
 
@@ -381,6 +436,9 @@ struct sub_request{
 
 	__int64 begin_time;               //子请求开始时间
 	__int64 complete_time;            //记录该子请求的处理时间,既真正写入或者读出数据的时间
+
+	int map_flag;                      //记录哪几个子请求是一个组合
+
 
 	struct local *location;           //在静态分配和混合分配方式中，已知lpn就知道该lpn该分配到那个channel，chip，die，plane，这个结构体用来保存计算得到的地址
 	struct sub_request *next_subs;    //指向属于同一个request的子请求

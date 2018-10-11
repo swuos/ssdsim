@@ -62,6 +62,69 @@ extern int freeFunc(TREE_NODE *pNode)
 	return 1;
 }
 
+struct block_erase_count * initialize_count(struct ssd_info * ssd)
+{
+	unsigned int i,j,k,m,n;
+	unsigned int idx = 0; 
+	int index = 0;
+	
+	struct block_erase_count *block_head = NULL;
+	struct block_erase_count *block_prev;
+	//struct block_erase_count *block_test;
+	//block_prev 
+	
+    for (i=0;i<ssd->parameter->channel_number;i++)
+	{
+		for (j=0;j<ssd->parameter->chip_num;j++)
+		{
+			for (k=0;k<ssd->parameter->die_chip;k++)
+			{
+				for (m=0;m<ssd->parameter->plane_die;m++)
+				{
+					for (n=0;n<ssd->parameter->block_plane;n++)
+					{
+						block_prev = (struct block_erase_count *)malloc(sizeof(struct block_erase_count));
+						block_prev->channel = i;
+						block_prev->chip = j;
+						block_prev->die = k;
+						block_prev->plane = m;
+						block_prev->block = n;
+						block_prev->erase_count = 0;
+						block_prev->next = block_head;
+						block_head = block_prev;
+						
+						//idx++;
+						//printf("%d\n", idx);
+						//block_test = ssd->block_head;
+						//while(block_test){
+							//printf("%d,%d,%d,%d,%d:%d\n", block_test->channel, block_test->chip, block_test->die, block_test->plane, block_test->block, block_test->erase_count);
+						    //block_test = block_test->next;
+						//}
+						//printf("%d,%d,%d,%d,%d:%d\n", ssd->block_head->channel, ssd->block_head->chip, ssd->block_head->die, ssd->block_head->plane, ssd->block_head->block, ssd->block_head->erase_count);
+						//printf("%d,%d,%d,%d,%d:%d\n", i, j, k, m, n, 0);
+						//printf("%d,%d,%d,%d,%d:%d\n", block_head->channel, block_head->chip, block_head->die, block_head->plane, block_head->block, block_head->erase_count);
+						//printf("%d,%d,%d,%d,%d:%d\n", block_prev->channel, block_prev->chip, block_prev->die, block_prev->plane, block_prev->block, block_prev->erase_count);
+					}
+				}
+			}
+		}
+	}
+    //block_test = (struct block_erase_count *)malloc(sizeof(struct block_erase_count));
+	
+	ssd->block_head = block_head;
+	/*
+	block_prev = ssd->block_head;
+    while(block_prev)
+	{
+		printf("%d,%d,%d,%d,%d:%d\n", block_prev->channel, block_prev->chip, block_prev->die, block_prev->plane, block_prev->block, block_prev->erase_count);
+		index++;
+		printf("%d\n", index);
+		//system("pause");
+		block_prev = block_prev->next;
+	}
+	*/
+	return block_head;
+}
 
 /**********   initiation   ******************
 *modify by zhouwen
@@ -72,11 +135,30 @@ extern int freeFunc(TREE_NODE *pNode)
 *******************************************/
 struct ssd_info *initiation(struct ssd_info *ssd)
 {
-	unsigned int x=0,y=0,i=0,j=0,k=0,l=0,m=0,n=0;
+	FILE *fp=NULL;
+	FILE *array_fp=NULL;
+	//FILE *
+	//unsigned int x=0,y=0,i=0,j=0,k=0,l=0,m=0,n=0;
+	//unsigned int lsn1, lsn2;
 	errno_t err;
 	char buffer[300];
+    char ch1 = 0, ch2 = 0;
+	//int i, j;
+	//int lsn1, lsn2;
+	//int a[10];
+	//char c;
 	struct parameter_value *parameters;
-	FILE *fp=NULL;
+	//struct frequence_set *frequence_prev;//new
+	//struct frequence_set *follow = NULL;//new
+    //struct frequence_set *head = NULL;
+	//struct frequence_set *p = NULL;
+	//struct frequence_set *frequence_prev;
+    ssd->frequence_head = NULL;//new
+	//follow = (struct frequence_set *)malloc(sizeof(struct frequence_set));//new
+	
+	
+	
+
 	
 //	printf("input parameter file name:");
 //	gets(ssd->parameterfilename);
@@ -86,19 +168,19 @@ struct ssd_info *initiation(struct ssd_info *ssd)
 //	gets(ssd->tracefilename);
 //	strcpy_s(ssd->tracefilename,25,"example.ascii");
 //	strcpy_s(ssd->tracefilename,25,"CFS.ascii");
-	strcpy_s(ssd->tracefilename,25,"DevDivRelease.ascii");
+	strcpy_s(ssd->tracefilename,25,"8192_test_prn_1.csv");
 
 //	printf("\ninput output file name:");
 //	gets(ssd->outputfilename);
 //	strcpy_s(ssd->outputfilename,7,"ex.out");
 //	strcpy_s(ssd->outputfilename,25,"CFS.out");
-	strcpy_s(ssd->outputfilename,25,"DevDivRelease.out");
+	strcpy_s(ssd->outputfilename,25,"ex.out");
 
 //	printf("\ninput statistic file name:");
 //	gets(ssd->statisticfilename);
 //	strcpy_s(ssd->statisticfilename,16,"statistic10.dat");
 //	strcpy_s(ssd->statisticfilename,16,"CFS.dat");
-	strcpy_s(ssd->statisticfilename,25,"DevDivRelease.dat");
+	strcpy_s(ssd->statisticfilename,25,"statistic10.dat");
 
 	//strcpy_s(ssd->statisticfilename2 ,16,"statistic2.dat");
 
@@ -119,7 +201,109 @@ struct ssd_info *initiation(struct ssd_info *ssd)
 	alloc_assert(ssd->channel_head,"ssd->channel_head");
 	memset(ssd->channel_head,0,ssd->parameter->channel_number * sizeof(struct channel_info));
 	initialize_channels(ssd );
+
+	//初始化擦除链表
+	ssd->block_head = NULL;
+	//ssd->block_head=(struct block_erase_count*)malloc(sizeof(struct block_erase_count));
+	//alloc_assert(ssd->block_head,"ssd->block_head");
+	//memset(ssd->block_head,0, sizeof(struct block_erase_count));
+	initialize_count(ssd);
 	
+	//printf("%d\n", ssd->channel_head[2].chip_head[0].die_head[0].plane_head[0].blk_head[0].free_page_num);
+	//system("pause");
+
+    //初始化free_page_num
+	ssd->free_page_num = parameters->page_block*parameters->channel_number*parameters->chip_num*parameters->die_chip*parameters->plane_die*parameters->block_plane;
+	
+	//初始化两个队列
+    ssd->standby_front = ssd->standby_rear = (struct request*)malloc(sizeof(struct request));
+	ssd->standby_rear->next_node = NULL;
+    ssd->doing_front = ssd->doing_rear = (struct request*)malloc(sizeof(struct request));
+	ssd->doing_rear->next_node = NULL;
+
+	//初始化get_requests_count
+	ssd->get_requests_count = 0;
+
+	//初始化频繁集合
+	/*
+	while ((c = fgetc(array_fp)) != EOF)//读入一个字符，并判断是否为终止符
+	{
+		memset(a, 0, sizeof(a));//每一行读入前先将a[10]置0
+		ungetc(c, array_fp);//回退一个字符
+		i = 0;
+		while (1)//读入一行
+		{
+			c = fgetc(array_fp);//读入一个字符
+			if (c == 0x0a)break;
+			else
+			{
+				ungetc(c, array_fp);//回退一个字符
+				fscanf(array_fp, "%d", &a[i]);//从文件中读入一个字符
+				//printf("a[%d]:%d\n", i, a[i]);
+				i++;
+			}
+		}
+		
+		frequence_prev = (struct frequence_set *)malloc(sizeof(struct frequence_set));
+		for (i = 0; i < 10; i++)
+		{
+			frequence_prev->frequence_array[i] = a[i];
+			//printf("a[i]:%d\n", a[i]);
+			//printf("p->frequence_array[i]:%d\n", p->frequence_array[i]);
+		}
+		//strcpy(frequence_prev->frequence_array[10], a[10]);
+		//frequence_prev->frequence_array[10] = a[10];
+		//memcpy(frequence_prev->frequence_array[10], a[10], sizeof(frequence_prev->frequence_array[10]));
+		frequence_prev->next = ssd->frequence_head;
+		ssd->frequence_head = frequence_prev;
+	}
+	p = (struct frequence_set *)malloc(sizeof(struct frequence_set));
+	p = ssd->frequence_head;
+	while (p)
+	{
+		for (i = 0; i < 10; i++)
+		{
+			printf("%d\n", p->frequence_array[i]);
+			//fprintf("");
+		}
+		//system("pause");
+		p = p->next;
+	}
+	
+	system("pause");
+	fclose(array_fp);
+	*/
+	//原来的频繁集合初始化
+    /*
+	array_fp = fopen("lsn_array.txt", "rt");
+	while(NULL != fgets(buffer, 200, array_fp))
+	{
+		sscanf(buffer,"%d %d",&lsn1,&lsn2);
+	    
+	    
+	    frequence_prev = (struct frequence_set *)malloc(sizeof(struct frequence_set));
+        
+		frequence_prev->frequence_array[0] = lsn1;
+		frequence_prev->frequence_array[1] = lsn2;
+
+	    frequence_prev->next = ssd->frequence_head;
+	    ssd->frequence_head = frequence_prev;
+	}
+	//debug
+	//
+	follow = ssd->frequence_head;
+	while (follow)
+	{
+		for (i = 0; i < 2; i++)
+		{
+			printf("%d\n", follow->frequence_array[i]);
+		}
+		follow = follow->next;
+	}
+	system("pause");
+    //
+	fclose(array_fp);
+	*/
 
 	printf("\n");
 	if((err=fopen_s(&ssd->outputfile,ssd->outputfilename,"w")) != 0)
@@ -179,8 +363,11 @@ struct ssd_info *initiation(struct ssd_info *ssd)
 	fclose(fp);
 	printf("initiation is completed!\n");
 
+    
 	return ssd;
 }
+
+
 
 
 struct dram_info * initialize_dram(struct ssd_info * ssd)

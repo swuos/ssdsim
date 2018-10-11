@@ -16,7 +16,6 @@ Chao Ren        2011/07/01        2.0           Change               529517386@q
 Hao Luo         2011/01/01        2.0           Change               luohao135680@gmail.com
 Zhiming Zhu     2012/07/19        2.1.1         Correct erase_planes()   812839842@qq.com  
 *****************************************************************************************************************************/
-
 void main();
 struct ssd_info *simulate(struct ssd_info *);
 int get_requests(struct ssd_info *);

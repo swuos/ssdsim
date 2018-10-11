@@ -1,5 +1,7 @@
 SSDsim is a simulator which can simulate the behaviors of hardware and software of SSD. It provides the simulated results of performance, endurance and energy consumption under each kind of workloads.
 SSDsim is created by Yang Hu in 2009, 2010 and improved under the help of Zhiming Zhu¡¢Shuangwu Zhang¡¢Chao Ren¡¢Hao Luo in 2011. We will continue to add new modules and functions for SSDsim. If you have any question, advice or requirement, please let us know. You can email to yanghu@foxmail.com.
+#SLASH
+SSDsim is updated by Jun Li, Jianwei Liao and Xiaofei Xu in 2018, update a new mapping method with frequentsets.
 
 Step:
 1.	Use visual studio 2008 to compile the code, and create a executable file.
